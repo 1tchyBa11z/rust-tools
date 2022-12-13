@@ -1,0 +1,15 @@
+[package]
+name = "sh3r10ck"
+version = "0.1.0"
+edition = "2021"
+author = "1tchyBa11z"
+about = "A simple TCP/UDP/QUIC Port scanner"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.0.22", features = ["derive"] }
+itertools = "0.10.5"
+tokio = { version = "1", features = ["full"]}
+#tokio = { version = "0.1.22", features = ["rt", "net", "macros", "rt-multi-thread", "io-util", "time", "sync"]}
+futures = "0.3.25"
