@@ -51,10 +51,18 @@ async fn main() {
   // instantiate resp    
   let mut resp: Vec<[u8; 48]> = Vec::new();
 
+  let mut arg_bool = true;
   // let mut unwrapped_resp = String::from_utf8_lossy(resp);
+  if (args.target.len() == 0 || args.target == "default_target") && (args.port.len() == 0 || args.port == "default_port") && (args.scantype.len() == 0 ||args.scantype == "default_scantype") {
 
+    println!("[*] No arguments selected!");
+    println!("[*] Type -h --help");
+    arg_bool = false;
+
+  }
+  if arg_bool == true {
   // if no targets specified take from targets.txt file and add to vector ipv
-  if args.target == "default_target" {
+   if args.target == "default_target" {
     if let Ok(lines) = read_lines("./targets.txt"){
       for line in lines {
         if let Ok(ip) =  line {
@@ -108,8 +116,8 @@ async fn main() {
       portv.push(a);
     }
     // print chosen ports
-    println!("[*] Ports: {:?}", portv.len());
-  } else {
+      println!("[*] Ports: {:?}", portv.len());
+    } else {
     // scan custom range of ports
     if args.port.len() > 1 {
       let custom_ports = args.port.split(",");
@@ -152,6 +160,7 @@ async fn main() {
   // if no scantype is specified default to TCP
   if args.scantype == "default_scantype" {
     scan = 0;
+    println!("[*] sh3r10ck scan report");
     println!("[*] Async TCP");
     for s in sockv {
       let tx1 = tx.clone();
@@ -166,7 +175,17 @@ async fn main() {
     // if TCP scantype is specified use TCP
   } else if args.scantype == "T" {
     scan = 0;
-    println!("[*] ScanType: TCP");
+    println!("[*] sh3r10ck scan report");
+    println!("[*] Async TCP");
+    for s in sockv {
+      let tx1 = tx.clone();
+      tokio::spawn(async move {
+          async_TCP(s,  tx1).await;
+      });
+    }
+    while let Some (recv_string) = rx.recv().await {
+      println!("{}", recv_string);
+    };
 
     // if UDP scantype is specified use UDP
   } else if  args.scantype == "U" {
@@ -184,6 +203,7 @@ async fn main() {
     println!("[*] Invalid ScanType selected");
   }
 }
+}
 
 // function to read files line by line
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
@@ -191,37 +211,66 @@ where P: AsRef<Path>, {
   let file = File::open(filename)?;
   Ok(io::BufReader::new(file).lines())
 }
-async fn async_TCP(_sock: SocketAddr, tx1: mpsc::Sender<String> ) -> Result<(), Box<dyn Error>> {
-  let mut buf = vec![0; 10240];
-  let merged = "";
-  let stream = TcpStream::connect(_sock).await?;
-  loop {
-    stream.readable().await?; 
-    match stream.try_read(&mut buf){
 
-      Ok(n) => {
-        buf.truncate(n);
-        // merged = format!("Open,{:?}",  *buf);
-        break;
-      }
-      // let mut buf = ReadBuf::new(&mut buf);
-      // Ok(text) => String::from("Open"),
-      /* Err(ref e) if e.kind() == io::ErrorKind::HostUnreachable => {
-         continue;
-      // String::from("Destination host unreachable"),
-      }
-       */
-      Err(e) => {
-        return Err(e.into());
-      }
-      // Err(_) => String::from("HostUnreachable"),
+async fn async_TCP(_sock: SocketAddr, tx1: mpsc::Sender<String> ) -> Result<(), Box<dyn Error>> {
+  let result_str: String = match TcpStream::connect(_sock).await {
+    Ok(stream) => scan(stream).await /*call other functions*/,
+    Err(e) => {
+      format!("Closed\",\"{}", e)
     }
-  }
-  let metaResp = format!("{},{},{:?}", _sock.ip(), _sock.port(), String::from_utf8_lossy(&buf));
+  };
+  
+  let metaResp = format!("{},{},{:?}", _sock.ip(), _sock.port(), result_str);
   tx1.send(metaResp).await;
 
   Ok(())
 }
+// Sync scanning logic
+async fn scan(stream: TcpStream) -> String {
+  let mut buf = vec![0; 1024];
+  let merged = "";
+
+  loop {
+    stream.readable().await; 
+    match stream.try_read(&mut buf){
+
+      Ok(n) => {
+        buf.truncate(n);
+//        let ret = ;
+        return format!("Open\",{:?}",String::from_utf8_lossy(&buf) );
+        //format!("{_}");
+        //         merged = format!("Open,{:?}",  *buf);
+      }
+      // Err(ref e) if e.kind() == io::ErrorKind::HostUnreachable => {
+      Err(e) => {
+        //return Err(e.into());
+        //String::from("Closed");
+        return format!("bubbles{e}");
+
+      }
+    }
+  }
+
+
+}
+      // Err(_) => String::from("HostUnreachable"),
+
+
+
+      /*
+      async fn async_TCP(_sock: SocketAddr, tx1: mpsc::Sender<String> ) {
+    println!("[*] Async TCP");
+    let res = match TcpStream::connect(_sock).await {
+      Ok(_) => String::from("Open"),
+//      Err(HostUnreachable
+      Err(_) => String::from("Closed"),
+    };
+    println!("async TCP operation complete");
+    let metaResp = format!("sh3r10ck scan report for {} \n{} {}", _sock.ip(), _sock.port(), res);
+    tx1.send(metaResp).await;
+
+    */
+
 
 /* 
    thread 'tokio-runtime-worker' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 113, kind: HostUnreachable, message: "No route to host" }thread '', tokio-runtime-workersrc/main.rs' panicked at ':called `Result::unwrap()` on an `Err` value: Os { code: 113, kind: HostUnreachable, message: "No route to host" }236', thread ':tokio-runtime-workersrc/main.rsthread '51tokio-runtime-worker
