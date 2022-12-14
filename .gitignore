@@ -1,2 +1,3 @@
 #ignore built application
 **/target
+**/Cargo.lock
