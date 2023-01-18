@@ -1,4 +1,6 @@
 use clap:: { Parser };
+use std::net::Ipv4Addr;
+
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
@@ -12,4 +14,10 @@ pub struct ArgList{
     /// (T)CP or (U)DP or (Q)uic Scan
     #[arg(short,long, default_value="default_scantype")]
     pub scantype: String,
+    /// Batch Size
+    #[arg(short,long, default_value="default_batchsize")]
+    pub batchsize: String,
+    /// Number of retries
+    #[arg(short,long, default_value="default_retries")]
+    pub retries: String,
 }
